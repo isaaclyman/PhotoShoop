@@ -43,7 +43,7 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(next)
     })
-    .bind(("127.0.0.1", 4015))?
+    .bind(("0.0.0.0", 4015))?
     .run();
 
     println!("Visit http://localhost:4015 in your browser.");
