@@ -1,43 +1,104 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    path::PathBuf,
+    time::{Duration, SystemTime},
+};
 
-use async_recursion::async_recursion;
-use axum::{Router, routing::get, response::{Html, IntoResponse}, body::StreamBody, http::{header::CONTENT_TYPE, HeaderMap}};
-use rand::{thread_rng, seq::SliceRandom};
-use tokio::fs::File;
-use tokio_util::io::ReaderStream;
-use walkdir::{WalkDir, DirEntry};
+use actix_web::{
+    get,
+    http::{
+        header::{
+            ContentDisposition, DispositionParam, DispositionType, HttpDate, TryIntoHeaderValue,
+            EXPIRES,
+        },
+        StatusCode,
+    },
+    web, App, HttpRequest, HttpResponse, HttpServer, Result,
+};
+use rand::{seq::SliceRandom, thread_rng};
+use walkdir::{DirEntry, WalkDir};
 
-pub mod web;
-use web::web_page::get_index;
+pub mod webpage;
+use webpage::webpage::get_index;
 
 const FILE_TYPES: &[&str] = &["avif", "heic", "jpeg", "jpg", "png", "webp"];
 
-#[tokio::main]
-async fn main() -> Result<(), &'static str> {
+struct AppState {
+    photos: Vec<DirEntry>,
+    server_start: SystemTime,
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     let mut photos = get_all_photos();
     let mut rng = thread_rng();
     photos.shuffle(&mut rng);
 
-    let landing_page = get_index();
-    let app = Router::new()
-        .route("/", get(|| async { Html(landing_page) }))
-        .route("/next", get(|| async { stream_next_photo(photos).await }));
+    let server = HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(AppState {
+                photos: photos.to_owned(),
+                server_start: SystemTime::now(),
+            }))
+            .service(index)
+            .service(next)
+    })
+    .bind(("127.0.0.1", 4015))?
+    .run();
 
     println!("Visit http://localhost:4015 in your browser.");
-    axum::Server::bind(&"0.0.0.0:4015".parse().unwrap())
-        .serve(app.into_make_service())
+    server.await
+}
+
+#[get("/")]
+async fn index() -> Result<HttpResponse> {
+    let landing_page = get_index();
+    Ok(HttpResponse::build(StatusCode::OK)
+        .content_type("text/html; charset=utf-8")
+        .body(landing_page))
+}
+
+#[get("/next")]
+async fn next(req: HttpRequest, data: web::Data<AppState>) -> HttpResponse {
+    let photo_path = &get_next_photo_data(&data.photos, data.server_start);
+    let extension = photo_path
+        .extension()
+        .map(|ext| ext.to_string_lossy().to_ascii_lowercase());
+    let mut file = actix_files::NamedFile::open_async(photo_path)
         .await
         .unwrap();
 
-    Ok(())
+    if extension.unwrap_or_default() == "heic" {
+        file = file.set_content_disposition(ContentDisposition {
+            disposition: DispositionType::Inline,
+            parameters: vec![DispositionParam::Filename(
+                photo_path
+                    .file_name()
+                    .map(|f| f.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "unknown".to_string()),
+            )],
+        });
+        file = file.set_content_type("image/heic".parse().unwrap());
+    }
+
+    // file.set_content_disposition(ContentDisposition::)
+
+    let mut response = file.into_response(&req);
+    let headers = response.head_mut();
+    let expiration = SystemTime::now()
+        .checked_add(Duration::from_secs(4))
+        .unwrap();
+    let http_date = HttpDate::from(expiration);
+    headers
+        .headers
+        .append(EXPIRES, http_date.try_into_value().unwrap());
+
+    response
 }
 
 fn get_all_photos() -> Vec<DirEntry> {
     let mut photos: Vec<DirEntry> = vec![];
 
-    for entry in WalkDir::new(".")
-            .into_iter()
-            .filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(".").into_iter().filter_map(|e| e.ok()) {
         let f_name = entry.file_name().to_string_lossy();
 
         let extension_opt = f_name.split('.').last();
@@ -63,36 +124,15 @@ fn get_all_photos() -> Vec<DirEntry> {
     photos
 }
 
-async fn stream_next_photo(photos: Vec<DirEntry>) -> impl IntoResponse {
-    let photo = get_next_photo_data(photos).await;
-    let mime_type = format!("image/{}", photo.1);
-    let mut headers = HeaderMap::new();
-    headers.insert(CONTENT_TYPE, mime_type.parse().unwrap());
-
-    let stream = ReaderStream::new(photo.0);
-
-    (headers, StreamBody::new(stream))
-}
-
-#[async_recursion]
-async fn get_next_photo_data(mut photos: Vec<DirEntry>) -> (File, String) {
+fn get_next_photo_data(photos: &Vec<DirEntry>, base_time: SystemTime) -> PathBuf {
     let now = SystemTime::now();
-    let since_the_epoch = now.duration_since(UNIX_EPOCH).expect("System time is before 1970");
-    let three_second_periods = (since_the_epoch.as_secs() as usize) / 4;
+    let since_server_start = now
+        .duration_since(base_time)
+        .expect("System time is before server start time");
+    let three_second_periods = (since_server_start.as_secs() as usize) / 4;
     let corresponding_ix = three_second_periods % photos.len();
-    let corresponding_photo = 
-        &photos[corresponding_ix];
+    let corresponding_photo = &photos[corresponding_ix];
     let path = corresponding_photo.path();
-    let extension = match path.extension() {
-        None => "unknown".to_string(),
-        Some(ext) => ext.to_string_lossy().to_ascii_lowercase()
-    };
 
-    match File::open(path).await {
-        Ok(file) => (file, extension),
-        Err(_) => {
-            photos.remove(corresponding_ix);
-            get_next_photo_data(photos).await
-        }
-    }
+    path.to_owned()
 }

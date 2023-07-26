@@ -1,4 +1,4 @@
-pub mod web_page {
+pub mod webpage {
   const INDEX: &str = include_str!("./index.html");
   const STYLES: &str = include_str!("./styles.css");
   const HEIC_SCRIPT: &str = include_str!("./heic2any.min.js");
