@@ -1,0 +1,15 @@
+[package]
+name = "photo_shoop"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-recursion = "1.0.4"
+axum = "0.6.19"
+futures = "0.3.28"
+rand = "0.8.5"
+tokio = { version = "1.29.1", features = ["fs", "macros", "rt-multi-thread"] }
+tokio-util = { version = "0.7.8", features = ["io"] }
+walkdir = "2.3.3"
