@@ -1,7 +1,13 @@
 [package]
 name = "photo_shoop"
+description = "A Rust server that recursively finds photos in \"./\" and serves them as a zero-UI slideshow at localhost:4015."
+keywords = ["photo", "slideshow", "kids"]
+homepage = "https://github.com/isaaclyman/PhotoShoop"
+repository = "https://github.com/isaaclyman/PhotoShoop"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
+license-file = "LICENSE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
