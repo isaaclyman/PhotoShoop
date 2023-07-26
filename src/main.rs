@@ -23,6 +23,7 @@ async fn main() -> Result<(), &'static str> {
         .route("/", get(|| async { Html(landing_page) }))
         .route("/next", get(|| async { stream_next_photo(photos).await }));
 
+    println!("Visit http://localhost:4015 in your browser.");
     axum::Server::bind(&"0.0.0.0:4015".parse().unwrap())
         .serve(app.into_make_service())
         .await
@@ -53,7 +54,7 @@ fn get_all_photos() -> Vec<DirEntry> {
         photos.push(entry);
     }
 
-    print!("Found {} photos.", photos.len());
+    println!("Found {} photos.", photos.len());
     photos
 }
 
