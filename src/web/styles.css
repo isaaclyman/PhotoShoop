@@ -5,6 +5,7 @@ html, body {
   margin: 0;
   padding: 0;
   pointer-events: none;
+  touch-action: none;
   width: 100vw;
 }
 
@@ -19,11 +20,11 @@ body {
   background-color: transparent;
   border: 1px solid #CCC;
   color: white;
-  left: 16;
+  left: 16px;
   padding: 8px;
   pointer-events: all;
   position: absolute;
-  top: 16;
+  top: 16px;
 }
 
 .fullscreen-button.hidden {
@@ -41,6 +42,7 @@ body {
 
 .viewpane {
   height: 100%;
+  max-width: 100%;
   object-fit: contain;
   opacity: 1;
   transition: opacity 400ms;

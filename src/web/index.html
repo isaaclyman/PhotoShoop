@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <style>
@@ -8,7 +9,12 @@
     </script>
   </head>
   <body>
-    <button class="fullscreen-button" onclick="launchFullScreen(document.documentElement)">F</button>
-    <img class="viewpane" src="">
+    <button
+      class="fullscreen-button"
+      onclick="launchFullScreen(document.documentElement)"
+    >
+      F
+    </button>
+    <img class="viewpane" src="" onerror="imageError()" />
   </body>
 </html>
