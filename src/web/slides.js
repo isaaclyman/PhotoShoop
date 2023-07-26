@@ -1,7 +1,14 @@
 let nextPhotoTimeout;
 
 function imageError() {
-  getNextPhoto();
+  const viewpane = document.querySelector(".viewpane");
+  viewpane.classList.add("fade-out");
+
+  if (nextPhotoTimeout) {
+    clearTimeout(nextPhotoTimeout);
+  }
+
+  nextPhotoTimeout = setTimeout(() => getNextPhoto(), 1000);
 }
 
 function getNextPhoto() {
