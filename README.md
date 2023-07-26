@@ -21,7 +21,7 @@ cargo install photo_shoop
 Then, in your photos folder:
 
 ```bash
-cargo run photo_shoop
+cargo run -r photo_shoop
 ```
 
 ## Update to latest version
