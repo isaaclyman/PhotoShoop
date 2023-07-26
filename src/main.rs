@@ -68,7 +68,7 @@ async fn stream_next_photo(photos: Vec<DirEntry>) -> impl IntoResponse {
 async fn get_next_photo_data(mut photos: Vec<DirEntry>) -> File {
     let now = SystemTime::now();
     let since_the_epoch = now.duration_since(UNIX_EPOCH).expect("System time is before 1970");
-    let three_second_periods = (since_the_epoch.as_secs() as usize) / 3;
+    let three_second_periods = (since_the_epoch.as_secs() as usize) / 4;
     let corresponding_ix = three_second_periods % photos.len();
     let corresponding_photo = 
         &photos[corresponding_ix];
