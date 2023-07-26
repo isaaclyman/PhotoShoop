@@ -12,7 +12,7 @@ use actix_web::{
         },
         StatusCode,
     },
-    web, App, HttpRequest, HttpResponse, HttpServer, Result,
+    web, App, HttpRequest, HttpResponse, HttpServer, Result, middleware,
 };
 use rand::{seq::SliceRandom, thread_rng};
 use walkdir::{DirEntry, WalkDir};
@@ -35,6 +35,7 @@ async fn main() -> std::io::Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(middleware::Compress::default())
             .app_data(web::Data::new(AppState {
                 photos: photos.to_owned(),
                 server_start: SystemTime::now(),
